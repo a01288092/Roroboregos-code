@@ -1,0 +1,91 @@
+/*
+ * ROROBOREGOS - Motor NEMA 17 con AccelStepper
+ * =============================================
+ * Descripción: Control del motor con aceleración suave y movimiento oscilante
+ * Librería: AccelStepper (https://www.airspayce.com/mikem/arduino/AccelStepper/)
+ * Motor: NEMA 17 con micropasos (16 micropasos = 3200 pasos por vuelta)
+ * Driver: TMC2209
+ */
+
+#include <AccelStepper.h>
+
+// Definición de pines
+const int pinSTEP   = 3;   // Pin STEP del driver
+const int pinDIR    = 2;   // Pin DIR del driver
+const int pinENABLE = 4;   // Pin ENABLE del driver (activa/desactiva)
+
+// Configuración del motor con AccelStepper
+// AccelStepper::DRIVER = modo con 2 pines (STEP y DIR)
+AccelStepper motor(AccelStepper::DRIVER, pinSTEP, pinDIR);
+
+// Pasos por vuelta (200 pasos reales * 16 micropasos = 3200 totales)
+const long pasosPorVuelta = 3200;
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Activar el driver TMC2209
+  pinMode(pinENABLE, OUTPUT);
+  digitalWrite(pinENABLE, LOW);  // LOW = driver activo
+  
+  // Configuración de movimiento suave
+  motor.setMaxSpeed(1000);      // Velocidad máxima (pasos/segundo)
+  motor.setAcceleration(500);   // Aceleración (pasos/segundo²)
+  
+  // Establecer posición inicial en cero
+  motor.setCurrentPosition(0);
+  
+  Serial.println("Motor NEMA 17 inicializado - AccelStepper");
+  Serial.println("Velocidad máx: 1000 p/s | Aceleración: 500 p/s²");
+}
+
+void loop() {
+  // Si llegó al destino, asignar uno nuevo
+  if (motor.distanceToGo() == 0) {
+    delay(1000);  // Pausa en cada extremo
+    
+    if (motor.currentPosition() == 0) {
+      // Desde posición 0, mover una vuelta adelante
+      Serial.println("Moviendo hacia posición 3200 (1 vuelta)");
+      motor.moveTo(pasosPorVuelta);
+    } else {
+      // Desde cualquier otra posición, volver a 0
+      Serial.println("Volviendo a posición 0");
+      motor.moveTo(0);
+    }
+  }
+  
+  // ⚠️ CRÍTICO: Ejecutar continuamente para calcular y generar pulsos
+  motor.run();
+}
+
+/*
+ * Función alternativa: girarXVueltas()
+ * Parámetros:
+ *   - vueltas: Número de vueltas completas
+ *   - velocidad: Velocidad en pasos/segundo (máx 2000)
+ */
+void girarXVueltas(int vueltas, int velocidad) {
+  motor.setMaxSpeed(velocidad);
+  motor.moveTo(pasosPorVuelta * vueltas);
+  
+  // Ejecutar hasta completar
+  while (motor.distanceToGo() != 0) {
+    motor.run();
+  }
+}
+
+/*
+ * Función alternativa: girarGrados()
+ * Parámetros:
+ *   - grados: Ángulo en grados (0-360)
+ */
+void girarGrados(float grados) {
+  long pasos = (long)((grados / 360.0) * pasosPorVuelta);
+  motor.moveTo(motor.currentPosition() + pasos);
+  
+  while (motor.distanceToGo() != 0) {
+    motor.run();
+  }
+}
+
