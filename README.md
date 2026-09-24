@@ -2,16 +2,16 @@
 
 Código del robot **Roroboregos** para competencia de robótica. Sistema integrado de motores a pasos (NEMA 17 + TMC2209), sensor MPU6050, sensor ultrasónico, sensor de color (TCS3200) y LEDs de salida.
 
-## 📋 Características
+## Características
 
-- ✅ **Control de motor paso a paso** (NEMA 17 con driver TMC2209)
-- ✅ **Aceleración y velocidad suave** (librería AccelStepper)
-- ✅ **Sensor acelerómetro/giroscopio** (MPU6050) para estabilización
-- ✅ **Sensor ultrasónico** (HC-SR04) para detección de distancia
-- ✅ **Sensor de color** (TCS3200) para identificación de objetos
-- ✅   **Sistema de LEDs** indicadores por color detectado
+- **Control de motor paso a paso** (NEMA 17 con driver TMC2209)
+- **Aceleración y velocidad suave** (librería AccelStepper)
+- **Sensor acelerómetro/giroscopio** (MPU6050) para estabilización
+- **Sensor ultrasónico** (HC-SR04) para detección de distancia
+- **Sensor de color** (TCS3200) para identificación de objetos
+- **Sistema de LEDs** indicadores por color detectado
 
-## 🔧 Hardware Requerido
+## Hardware 
 
 | Componente | Cantidad | Especificación |
 |-----------|----------|----------------|
@@ -24,7 +24,7 @@ Código del robot **Roroboregos** para competencia de robótica. Sistema integra
 | LEDs | 4 | Cian, Amarillo, Naranja, Rosa |
 | Resistencias | Varias | 220Ω para LEDs |
 
-## 📌 Conexiones de Pines
+## Conexiones de Pines
 
 ### Motor NEMA 17 (TMC2209)
 ```
@@ -62,9 +62,7 @@ SDA → Pin 20 (Arduino Mega) o A4 (Arduino Uno)
 SCL → Pin 21 (Arduino Mega) o A5 (Arduino Uno)
 ```
 
-## 📦 Librerías Requeridas
-
-Instala las siguientes librerías desde el Arduino IDE:
+## Librerías 
 
 ```
 - AccelStepper (por Mike McCauley)
@@ -74,8 +72,7 @@ Instala las siguientes librerías desde el Arduino IDE:
 
 **Instalación:** Arduino IDE → Sketch → Include Library → Manage Libraries → Buscar y instalar
 
-## 🚀 Estructura del Proyecto
-
+## Estructura 
 ```
 Roroboregos-code/
 ├── README.md                  # Este archivo
@@ -92,7 +89,7 @@ Roroboregos-code/
     └── CONFIGURACION.md       # Configuración de sensores
 ```
 
-## 🔨 Instalación y Uso
+##  Instalación
 
 ### 1. Clonar el Repositorio
 ```bash
@@ -153,15 +150,11 @@ const int distanciaDeteccion = 5;  // En centímetros
 - [TCS3200 Color Sensor](https://www.makerguides.com/tcs3200-color-sensor-arduino-tutorial/)
 - [HC-SR04 Ultrasonic Sensor](https://howtomechatronics.com/tutorials/arduino/ultrasonic-sensor-hc-sr04/)
 
-## 👥 Contribuidores
-
-- **Equipo Roroboregos**
-
 ## 📄 Licencia
 
 Este proyecto está bajo licencia **MIT**. Ver archivo [LICENSE](LICENSE) para más detalles.
 
-## 📞 Contacto y Soporte
+## Contacto
 
 Para reportar problemas, sugerencias o mejoras, abre un [Issue](https://github.com/a01288092/Roroboregos-code/issues) en el repositorio.
 
