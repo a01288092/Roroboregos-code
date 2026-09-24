@@ -1,0 +1,159 @@
+/*
+ * ROROBOREGOS - Motor NEMA 17 + Sensor MPU6050
+ * ============================================
+ * Descripción: Control del motor integrado con acelerómetro/giroscopio
+ * Librerías:
+ *   - AccelStepper
+ *   - Adafruit_MPU6050
+ *   - Adafruit_Sensor
+ * Motor: NEMA 17 con AccelStepper
+ * Sensor: MPU6050 (acelerómetro + giroscopio 6-DOF)
+ */
+
+#include <AccelStepper.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
+
+// Definición de pines motor
+const int pinSTEP   = 3;
+const int pinDIR    = 2;
+const int pinENABLE = 4;
+
+// Inicializar objetos
+AccelStepper motor(AccelStepper::DRIVER, pinSTEP, pinDIR);
+Adafruit_MPU6050 mpu;
+
+// Configuración
+const long pasosPorVuelta = 3200;  // Con micropasos
+int intervaloLectura = 200;        // ms entre lecturas de sensor
+
+// Variables para timing
+unsigned long tiempoUltimaLectura = 0;
+
+void setup() {
+  Serial.begin(115200);
+  delay(100);
+  
+  // ========== CONFIGURAR MOTOR ==========
+  pinMode(pinENABLE, OUTPUT);
+  digitalWrite(pinENABLE, LOW);
+  
+  motor.setMaxSpeed(2000);
+  motor.setAcceleration(800);
+  motor.setCurrentPosition(0);
+  
+  Serial.println("Motor NEMA 17 inicializado");
+  
+  // ========== INICIALIZAR MPU6050 ==========
+  if (!mpu.begin()) {
+    Serial.println("ERROR: No se encontró MPU6050");
+    Serial.println("Verifica las conexiones I2C (SDA/SCL)");
+    while (1) {
+      delay(10);
+    }
+  }
+  
+  Serial.println("MPU6050 detectado correctamente");
+  
+  // Configuraciones recomendadas
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);     // Rango acelerómetro
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);          // Rango giroscopio
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);       // Filtro pasa-bajos
+  
+  Serial.println("\nConfiguraciones MPU6050:");
+  Serial.println("- Acelerómetro: ±8G");
+  Serial.println("- Giroscopio: ±500°/s");
+  Serial.println("- Filtro: 21 Hz");
+  Serial.println("\nSistema listo\n");
+}
+
+void loop() {
+  // ========== LEER SENSOR (cada 200ms) ==========
+  if (millis() - tiempoUltimaLectura >= intervaloLectura) {
+    tiempoUltimaLectura = millis();
+    leerMPU6050();
+  }
+  
+  // ========== CONTROL DEL MOTOR ==========
+  // Asignar nuevo destino si llegó al actual
+  if (motor.distanceToGo() == 0) {
+    delay(500);
+    
+    if (motor.currentPosition() == 0) {
+      motor.moveTo(pasosPorVuelta);  // 1 vuelta adelante
+    } else {
+      motor.moveTo(0);               // Volver al inicio
+    }
+  }
+  
+  // Ejecutar movimiento continuo
+  motor.run();
+}
+
+/*
+ * Función: leerMPU6050()
+ * Lee aceleración, velocidad angular y temperatura del sensor
+ * Imprime valores por Serial
+ */
+void leerMPU6050() {
+  sensors_event_t a, g, temp;  // aceleración, giroscopio, temperatura
+  
+  mpu.getEvent(&a, &g, &temp);
+  
+  // Imprimir aceleración (m/s²)
+  Serial.print("Aceleración: X=");
+  Serial.print(a.acceleration.x, 2);
+  Serial.print(" Y=");
+  Serial.print(a.acceleration.y, 2);
+  Serial.print(" Z=");
+  Serial.print(a.acceleration.z, 2);
+  
+  // Imprimir velocidad angular (°/s)
+  Serial.print(" | Giroscopio: X=");
+  Serial.print(g.gyro.x, 2);
+  Serial.print(" Y=");
+  Serial.print(g.gyro.y, 2);
+  Serial.print(" Z=");
+  Serial.print(g.gyro.z, 2);
+  
+  // Imprimir temperatura (°C)
+  Serial.print(" | Temperatura: ");
+  Serial.print(temp.temperature);
+  Serial.println("°C");
+}
+
+/*
+ * Función: detectarCaida()
+ * Retorna true si detecta aceleración anormal (posible caída)
+ * Umbral: cambio en aceleración Z > 3.0 m/s²
+ */
+bool detectarCaida() {
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  
+  static float aceleZ_anterior = 0;
+  float cambio = abs(a.acceleration.z - aceleZ_anterior);
+  aceleZ_anterior = a.acceleration.z;
+  
+  return cambio > 3.0;
+}
+
+/*
+ * Función: obtenerInclinacion()
+ * Calcula el ángulo de inclinación en X e Y usando aceleración
+ */
+void obtenerInclinacion() {
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  
+  // Ángulos en grados
+  float angleX = atan2(a.acceleration.y, a.acceleration.z) * 180 / PI;
+  float angleY = atan2(a.acceleration.x, a.acceleration.z) * 180 / PI;
+  
+  Serial.print("Inclinación - Eje X: ");
+  Serial.print(angleX, 1);
+  Serial.print("° | Eje Y: ");
+  Serial.print(angleY, 1);
+  Serial.println("°");
+}
