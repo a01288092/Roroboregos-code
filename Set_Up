@@ -1,0 +1,228 @@
+# 🔧 Guía de Instalación y Configuración
+
+## Requisitos Previos
+
+- **Arduino IDE** (versión 1.8.19 o superior)
+  - Descargar desde: https://www.arduino.cc/en/software
+  
+- **Tarjeta Arduino** compatible
+  - Arduino Mega 2560 (recomendado)
+  - Arduino Uno (funciona pero con menos pines)
+
+- **Cable USB** para programar la tarjeta
+
+- **Librerias Arduino** (instaladas vía Arduino IDE)
+
+## Paso 1: Instalar Arduino IDE
+
+1. Descarga Arduino IDE desde https://www.arduino.cc/en/software
+2. Ejecuta el instalador
+3. Sigue las instrucciones de instalación
+4. Abre Arduino IDE una vez instalado
+
+## Paso 2: Instalar Librerías Requeridas
+
+### Opción A: Instalación Manual (Recomendado)
+
+1. Abre Arduino IDE
+2. Ve a **Sketch** → **Include Library** → **Manage Libraries**
+3. En el buscador, instala estas librerías:
+
+#### 1. **AccelStepper**
+- Autor: Mike McCauley
+- Busca: `AccelStepper`
+- Haz clic en **Install**
+
+#### 2. **Adafruit MPU6050**
+- Autor: Adafruit
+- Busca: `Adafruit MPU6050`
+- Haz clic en **Install**
+- También instalará automáticamente la dependencia `Adafruit_Sensor`
+
+#### 3. **Adafruit Sensor**
+- Autor: Adafruit
+- Busca: `Adafruit Unified Sensor`
+- Haz clic en **Install**
+
+### Opción B: Instalación desde ZIP
+
+Si tienes archivos ZIP de las librerías:
+
+1. Arduino IDE → **Sketch** → **Include Library** → **Add .ZIP Library...**
+2. Selecciona el archivo ZIP
+3. Repite para cada librería
+
+## Paso 3: Configurar Arduino IDE
+
+### Seleccionar Placa
+
+1. Ve a **Tools** → **Board** → selecciona tu Arduino:
+   - Para Arduino Mega: **Arduino Mega 2560**
+   - Para Arduino Uno: **Arduino Uno**
+
+### Seleccionar Puerto COM
+
+1. Conecta tu Arduino por USB
+2. Ve a **Tools** → **Port** → selecciona el puerto (ej: `COM3`)
+   - En Windows verás algo como `COM3` o `COM4`
+   - En Linux/Mac verás algo como `/dev/ttyUSB0`
+
+### Configurar Velocidad Serial (Baud Rate)
+
+- La mayoría de sketches usan **115200 baudios**
+- Algunos scripts antiguos usan **9600 baudios**
+- Se configura dentro del código: `Serial.begin(115200);`
+
+## Paso 4: Cargar Programas
+
+### Procedimiento Básico
+
+1. Abre un archivo `.ino` desde la carpeta `src/`
+2. Verifica las conexiones de pines
+3. Haz clic en el botón **Subir** (Upload) → o presiona `Ctrl + U`
+4. Espera a que aparezca el mensaje: `Upload complete`
+
+### Verificar Conexión
+
+Si aparece error al subir:
+
+1. Verifica que el puerto COM esté correcto (Tools → Port)
+2. Verifica que la placa sea la correcta (Tools → Board)
+3. Desconecta y reconecta el USB
+4. Intenta de nuevo
+
+## Paso 5: Monitor Serial
+
+Para ver mensajes del Arduino:
+
+1. **Tools** → **Serial Monitor** (o `Ctrl + Shift + M`)
+2. En la esquina inferior derecha, cambia la velocidad a **115200 baud**
+3. Verás los mensajes que imprime el Arduino con `Serial.println()`
+
+## Conexiones Recomendadas
+
+### Motor NEMA 17 (TMC2209)
+```
+Arduino   → TMC2209
+Pin 3     → STEP
+Pin 2     → DIR
+Pin 4     → ENABLE
+GND       → GND
++5V       → +5V (o fuente externa)
+```
+
+### Sensor Ultrasónico (HC-SR04)
+```
+Arduino   → HC-SR04
+Pin 12    → Trig
+Pin 11    → Echo
+GND       → GND
+5V        → Vcc
+```
+
+### Sensor Color (TCS3200)
+```
+Arduino   → TCS3200
+Pin 2     → S0
+Pin 3     → S1
+Pin 4     → S2
+Pin 5     → S3
+Pin 6     → Out
+GND       → GND
+5V        → Vcc
+```
+
+### Sensor Acelerómetro (MPU6050)
+```
+Arduino   → MPU6050
+Pin 20 (SDA) [Mega] → SDA
+Pin 21 (SCL) [Mega] → SCL
+GND       → GND
+5V        → Vcc
+
+Arduino Uno:
+Pin A4 (SDA) → SDA
+Pin A5 (SCL) → SCL
+```
+
+### LEDs Indicadores
+```
+Arduino   → LED Cian
+Pin 7     → Ánodo (+ del LED)
+GND       → Cátodo (- del LED) [con resistencia 220Ω]
+
+(Repetir para LEDs en pines 8, 9, 10)
+```
+
+## Solución de Problemas
+
+### "Puerto COM no aparece"
+- Instala drivers CH340: https://sparks.gogo.co.nz/ch340.html
+- O instala drivers FTDI para Arduino original
+
+### "Error de compilación"
+- Verifica que todas las librerías estén instaladas
+- Comprueba que no haya errores de sintaxis
+- Intenta reinicar Arduino IDE
+
+### "Error: avrdude: stk500_recv()"
+- Problema de conexión USB
+- Cambia el cable USB
+- Prueba otro puerto COM
+- Reinicia Arduino IDE
+
+### "Motor no se mueve"
+- Verifica que ENABLE esté en LOW
+- Comprueba voltaje en driver TMC2209
+- Usa fuente externa de mayor potencia
+
+### "Sensor no se detecta"
+- Verifica conexiones I2C (SDA/SCL)
+- Abre Monitor Serial a 115200 baud
+- Ejecuta sketch de búsqueda de dispositivos I2C
+
+## Script para Buscar Dispositivos I2C
+
+Si tienes problemas con MPU6050, copia esto en Arduino IDE:
+
+```cpp
+#include <Wire.h>
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Buscando dispositivos I2C...");
+}
+
+void loop() {
+  byte error, address;
+  int nDevices = 0;
+  
+  for (address = 1; address < 127; address++) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    
+    if (error == 0) {
+      Serial.print("Dispositivo encontrado en: 0x");
+      if (address < 16) Serial.print("0");
+      Serial.println(address, HEX);
+      nDevices++;
+    }
+  }
+  
+  if (nDevices == 0) Serial.println("Sin dispositivos I2C");
+  delay(5000);
+}
+```
+
+Ejecuta esto y verá las direcciones I2C detectadas.
+
+## Links Útiles
+
+- [Arduino Official Docs](https://docs.arduino.cc/)
+- [AccelStepper Library](http://www.airspayce.com/mikem/arduino/AccelStepper/)
+- [Adafruit MPU6050 Guide](https://learn.adafruit.com/mpu6050-6-axis-accelerometer-gyro)
+- [Datasheets](https://www.arduino.cc/reference/en/)
+
+---
+
+**¿Problemas?** Abre un [Issue](https://github.com/a01288092/Roroboregos-code/issues) en GitHub.
