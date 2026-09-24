@@ -1,0 +1,141 @@
+/*
+ * ROROBOREGOS - Sensor Ultrasónico HC-SR04
+ * ========================================
+ * Descripción: Mide distancia de objetos usando ultrasonido
+ * Rango: 2cm - 400cm
+ * Precisión: ±3mm
+ * 
+ * Pines:
+ * - PIN 12: Trig (trigger - envía pulso)
+ * - PIN 11: Echo (eco - recibe pulso)
+ */
+
+// Definición de pines
+const int pinTrig = 12;  // Pin de disparo del sensor
+const int pinEcho = 11;  // Pin de eco/recepción
+
+// Variables para almacenar lecturas
+long duracion;       // Duración del pulso en microsegundos
+float distancia;     // Distancia en centímetros
+float distanciaAnterior = 0;
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Configurar pines
+  pinMode(pinTrig, OUTPUT);
+  pinMode(pinEcho, INPUT);
+  
+  Serial.println("Sensor Ultrasónico HC-SR04 inicializado");
+  Serial.println("Rango: 2cm - 400cm");
+  Serial.println("\nInicializando lecturas...\n");
+  
+  delay(1000);  // Espera para estabilidad
+}
+
+void loop() {
+  // Realizar lectura de distancia
+  medirDistancia();
+  
+  // Mostrar resultado
+  if (distancia > 0) {
+    Serial.print("Distancia: ");
+    Serial.print(distancia);
+    Serial.print(" cm");
+    
+    // Detección de movimiento (cambio > 5cm)
+    if (abs(distancia - distanciaAnterior) > 5) {
+      Serial.print(" ⚠️ MOVIMIENTO DETECTADO");
+    }
+    
+    Serial.println();
+    distanciaAnterior = distancia;
+  } else {
+    Serial.println("ERROR: Lectura inválida");
+  }
+  
+  delay(100);  // Lectura cada 100ms
+}
+
+/*
+ * Función: medirDistancia()
+ * Mide la distancia mediante tiempo de eco
+ * 
+ * Fórmula:
+ *   Distancia = (Tiempo × Velocidad Sonido) / 2
+ *   Distancia = (Duración × 343 m/s) / 2
+ *   Distancia = Duración × 0.0343 / 2
+ *   Distancia = Duración × 0.01715 cm/µs
+ */
+void medirDistancia() {
+  // 1. ENVIAR PULSO DE TRIGGER
+  // El pulso debe durar al menos 10 microsegundos
+  digitalWrite(pinTrig, LOW);
+  delayMicroseconds(2);
+  
+  digitalWrite(pinTrig, HIGH);
+  delayMicroseconds(10);
+  
+  digitalWrite(pinTrig, LOW);
+  
+  // 2. MEDIR DURACIÓN DEL ECO
+  // pulseIn espera a que Echo vaya a HIGH y cuenta cuánto dura
+  duracion = pulseIn(pinEcho, HIGH);
+  
+  // 3. CALCULAR DISTANCIA
+  // Velocidad del sonido: 343 m/s = 0.0343 cm/µs
+  distancia = duracion * 0.034 / 2;
+  
+  // Validar lectura (máximo ~400cm típico)
+  if (distancia > 400 || distancia < 2) {
+    distancia = 0;  // Lectura inválida
+  }
+}
+
+/*
+ * Función alternativa: medirDistanciaMultiple()
+ * Realiza 5 mediciones y promedia para mayor precisión
+ */
+float medirDistanciaMultiple() {
+  float suma = 0;
+  int mediciones = 5;
+  
+  for (int i = 0; i < mediciones; i++) {
+    // Enviar trigger
+    digitalWrite(pinTrig, LOW);
+    delayMicroseconds(2);
+    digitalWrite(pinTrig, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(pinTrig, LOW);
+    
+    // Medir eco
+    duracion = pulseIn(pinEcho, HIGH);
+    suma += duracion * 0.034 / 2;
+    
+    delay(10);
+  }
+  
+  return suma / mediciones;
+}
+
+/*
+ * Función: detección de proximidad
+ * Alerta si un objeto está dentro del rango especificado
+ * 
+ * Parámetros:
+ *   - distanciaMinima: umbral bajo (cm)
+ *   - distanciaMaxima: umbral alto (cm)
+ */
+void detectarProximidad(int distanciaMinima, int distanciaMaxima) {
+  medirDistancia();
+  
+  if (distancia >= distanciaMinima && distancia <= distanciaMaxima) {
+    Serial.print("⚠️ OBJETO EN RANGO: ");
+    Serial.print(distancia);
+    Serial.print(" cm (");
+    Serial.print(distanciaMinima);
+    Serial.print("-");
+    Serial.print(distanciaMaxima);
+    Serial.println(" cm)");
+  }
+}
