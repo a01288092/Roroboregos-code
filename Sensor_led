@@ -1,0 +1,239 @@
+/*
+ * ROROBOREGOS - Sensor Color TCS3200 + LEDs
+ * =========================================
+ * Descripción: Detecta color de objetos con sensor TCS3200
+ * Controla LEDs (Cian, Amarillo, Naranja, Rosa) según color detectado
+ * 
+ * Componentes:
+ * - Sensor ultrasónico HC-SR04 (dispara lectura de color)
+ * - Sensor color TCS3200 (identifica colores)
+ * - 4 LEDs indicadores
+ */
+
+// ========== PINES SENSOR ULTRASÓNICO ==========
+const int pinTrig = 12;
+const int pinEcho = 11;
+
+// ========== PINES SENSOR DE COLOR TCS3200 ==========
+const int pinS0 = 2;   // Selektor de escala (S0/S1)
+const int pinS1 = 3;
+const int pinS2 = 4;   // Selektor de filtro (S2/S3)
+const int pinS3 = 5;
+const int pinOut = 6;  // Salida de frecuencia
+
+// ========== PINES DE LOS LEDs ==========
+const int ledCian     = 7;
+const int ledAmarillo = 8;
+const int ledNaranja  = 9;
+const int ledRosa     = 10;
+
+// ========== VARIABLES DE COLOR ==========
+int freqR = 0, freqG = 0, freqB = 0;  // Frecuencias medidas
+int R = 0, G = 0, B = 0;               // Valores RGB 0-255
+
+// ========== CALIBRACIÓN DEL SENSOR ==========
+// IMPORTANTE: Calibra según tu sensor con fondo BLANCO/NEGRO
+// Ejecuta el programa y mira los valores en el Monitor Serial
+int R_Min = 20, R_Max = 200;
+int G_Min = 20, G_Max = 200;
+int B_Min = 20, B_Max = 200;
+
+// Distancia de activación del sensor de color (cm)
+const int distanciaDeteccion = 5;
+
+void setup() {
+  Serial.begin(9600);
+  delay(100);
+  
+  // ========== CONFIGURAR SENSOR ULTRASÓNICO ==========
+  pinMode(pinTrig, OUTPUT);
+  pinMode(pinEcho, INPUT);
+  
+  // ========== CONFIGURAR SENSOR DE COLOR ==========
+  pinMode(pinS0, OUTPUT);
+  pinMode(pinS1, OUTPUT);
+  pinMode(pinS2, OUTPUT);
+  pinMode(pinS3, OUTPUT);
+  pinMode(pinOut, INPUT);
+  
+  // Configurar escala de frecuencia al 20%
+  // S0=HIGH, S1=LOW → Escala 20%
+  digitalWrite(pinS0, HIGH);
+  digitalWrite(pinS1, LOW);
+  
+  // ========== CONFIGURAR LEDs ==========
+  pinMode(ledCian, OUTPUT);
+  pinMode(ledAmarillo, OUTPUT);
+  pinMode(ledNaranja, OUTPUT);
+  pinMode(ledRosa, OUTPUT);
+  
+  // Apagar todos los LEDs inicialmente
+  apagarTodosLosLeds();
+  
+  Serial.println("========== ROROBOREGOS ==========");
+  Serial.println("Sistema Sensor Color + LEDs");
+  Serial.println("Esperando objeto impreso...");
+  Serial.println("==================================\n");
+}
+
+void loop() {
+  // ========== 1. MEDIR DISTANCIA CONTINUAMENTE ==========
+  digitalWrite(pinTrig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(pinTrig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(pinTrig, LOW);
+  
+  long duracion = pulseIn(pinEcho, HIGH);
+  float distancia = duracion * 0.034 / 2;
+  
+  // Si la lectura es inválida, ignorar ciclo
+  if (distancia == 0 || distancia > 400) {
+    delay(60);
+    return;
+  }
+  
+  // ========== 2. VERIFICAR SI OBJETO ESTÁ EN RANGO ==========
+  if (distancia > 0 && distancia <= distanciaDeteccion) {
+    Serial.print("\n¡Objeto detectado a ");
+    Serial.print(distancia, 1);
+    Serial.print(" cm! Escaneando color...");
+    
+    // Pausa para estabilidad del sensor
+    delay(200);
+    
+    // ========== 3. LEER RGB DEL SENSOR TCS3200 ==========
+    // Filtro ROJO (S2=LOW, S3=LOW)
+    digitalWrite(pinS2, LOW);
+    digitalWrite(pinS3, LOW);
+    freqR = pulseIn(pinOut, LOW);
+    delay(20);
+    
+    // Filtro VERDE (S2=HIGH, S3=HIGH)
+    digitalWrite(pinS2, HIGH);
+    digitalWrite(pinS3, HIGH);
+    freqG = pulseIn(pinOut, LOW);
+    delay(20);
+    
+    // Filtro AZUL (S2=LOW, S3=HIGH)
+    digitalWrite(pinS2, LOW);
+    digitalWrite(pinS3, HIGH);
+    freqB = pulseIn(pinOut, LOW);
+    delay(20);
+    
+    // ========== 4. CONVERTIR FRECUENCIAS A RGB ==========
+    // Mapear de rango de frecuencias a 0-255
+    R = map(freqR, R_Max, R_Min, 0, 255);
+    R = constrain(R, 0, 255);
+    
+    G = map(freqG, G_Max, G_Min, 0, 255);
+    G = constrain(G, 0, 255);
+    
+    B = map(freqB, B_Max, B_Min, 0, 255);
+    B = constrain(B, 0, 255);
+    
+    // ========== 5. MOSTRAR VALORES EN MONITOR SERIAL ==========
+    Serial.print("\nFrecuencias -> R: ");
+    Serial.print(freqR);
+    Serial.print(" | G: ");
+    Serial.print(freqG);
+    Serial.print(" | B: ");
+    Serial.println(freqB);
+    
+    Serial.print("Valores RGB -> R: ");
+    Serial.print(R);
+    Serial.print(" | G: ");
+    Serial.print(G);
+    Serial.print(" | B: ");
+    Serial.println(B);
+    
+    // Apagar LEDs previos
+    apagarTodosLosLeds();
+    
+    // ========== 6. IDENTIFICAR COLOR Y ENCENDER LED CORRESPONDIENTE ==========
+    // Ajusta estos valores según tu calibración
+    
+    if (B > 130 && G > 130 && R < 120) {
+      // CIAN (Azul + Verde, poco Rojo)
+      digitalWrite(ledCian, HIGH);
+      Serial.println(">>> LED ENCIENDE: CIAN <<<\n");
+    }
+    else if (R > 160 && G > 160 && B < 100) {
+      // AMARILLO (Rojo + Verde, poco Azul)
+      digitalWrite(ledAmarillo, HIGH);
+      Serial.println(">>> LED ENCIENDE: AMARILLO <<<\n");
+    }
+    else if (R > 160 && G > 70 && G < 150 && B < 80) {
+      // NARANJA (Rojo + algo de Verde, poco Azul)
+      digitalWrite(ledNaranja, HIGH);
+      Serial.println(">>> LED ENCIENDE: NARANJA <<<\n");
+    }
+    else if (R > 150 && B > 130 && G < 120) {
+      // ROSA (Rojo + Azul, poco Verde)
+      digitalWrite(ledRosa, HIGH);
+      Serial.println(">>> LED ENCIENDE: ROSA <<<\n");
+    }
+    else {
+      Serial.println("⚠️ Color no identificado con claridad\n");
+    }
+    
+    // Mantener LED encendido por 2 segundos
+    delay(2000);
+  }
+  else {
+    // Si no hay objeto en rango, apagar LEDs
+    apagarTodosLosLeds();
+  }
+  
+  delay(100);  // Ciclo general
+}
+
+/*
+ * Función: apagarTodosLosLeds()
+ * Apaga todos los LEDs indicadores
+ */
+void apagarTodosLosLeds() {
+  digitalWrite(ledCian, LOW);
+  digitalWrite(ledAmarillo, LOW);
+  digitalWrite(ledNaranja, LOW);
+  digitalWrite(ledRosa, LOW);
+}
+
+/*
+ * Función: calibrarSensor()
+ * Ejecutar esta función para calibrar el sensor
+ * Coloca un objeto BLANCO frente al sensor y mira los valores
+ * en el Monitor Serial
+ */
+void calibrarSensor() {
+  Serial.println("==== CALIBRANDO SENSOR ====");
+  Serial.println("Coloca un objeto BLANCO frente al sensor");
+  delay(3000);
+  
+  for (int i = 0; i < 10; i++) {
+    digitalWrite(pinS2, LOW);
+    digitalWrite(pinS3, LOW);
+    freqR = pulseIn(pinOut, LOW);
+    
+    digitalWrite(pinS2, HIGH);
+    digitalWrite(pinS3, HIGH);
+    freqG = pulseIn(pinOut, LOW);
+    
+    digitalWrite(pinS2, LOW);
+    digitalWrite(pinS3, HIGH);
+    freqB = pulseIn(pinOut, LOW);
+    
+    Serial.print("Lectura ");
+    Serial.print(i + 1);
+    Serial.print(" -> R: ");
+    Serial.print(freqR);
+    Serial.print(" | G: ");
+    Serial.print(freqG);
+    Serial.print(" | B: ");
+    Serial.println(freqB);
+    
+    delay(500);
+  }
+  
+  Serial.println("Calibración completada - Anota los valores máximos");
+}
