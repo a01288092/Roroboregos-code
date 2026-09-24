@@ -1,7 +1,68 @@
-cd C:\Users\bulba\Roroboregos-code
-git init
-git add .
-git commit -m "Inicialización del proyecto Roroboregos"
-git remote add origin https://github.com/a01288092/Roroboregos-code.git
-git branch -M main
-git push -u origin main
+/*
+ * ROROBOREGOS - Control Básico Motor NEMA 17
+ * ============================================
+ * Descripción: Control simple del motor paso a paso sin librerías externas
+ * Motor: NEMA 17 (200 pasos por vuelta completa)
+ * Driver: TMC2209
+ * 
+ * Pines:
+ * - PIN 3: STEP (generador de pulsos)
+ * - PIN 2: DIR (dirección de giro)
+ * - PIN 4: ENABLE (activación del driver)
+ */
+
+// Definición de pines
+const int pinSTEP   = 3;   // Genera pulsos para pasos
+const int pinDIR    = 2;   // Controla dirección (HIGH/LOW)
+const int pinENABLE = 4;   // Activa driver (LOW = activo)
+
+// Configuración del motor
+const int pasosPorVuelta = 200;  // Motor NEMA 17 estándar
+
+void setup() {
+  // Configurar los pines como salidas
+  pinMode(pinSTEP, OUTPUT);
+  pinMode(pinDIR, OUTPUT);
+  pinMode(pinENABLE, OUTPUT);
+  
+  // Activar el driver TMC2209
+  digitalWrite(pinENABLE, LOW);  // LOW = driver activo
+  
+  // Iniciar comunicación serial para debugging
+  Serial.begin(115200);
+  Serial.println("Motor NEMA 17 inicializado - Control Básico");
+}
+
+void loop() {
+  // GIRO HORARIO (Clockwise)
+  Serial.println("Girando HORARIO...");
+  digitalWrite(pinDIR, HIGH);  // Dirección: adelante
+  girar(pasosPorVuelta);       // Una vuelta completa
+  
+  delay(1000);  // Pausa 1 segundo
+  
+  // GIRO ANTIHORARIO (Counter-Clockwise)
+  Serial.println("Girando ANTIHORARIO...");
+  digitalWrite(pinDIR, LOW);   // Dirección: atrás
+  girar(pasosPorVuelta);       // Una vuelta completa
+  
+  delay(1000);  // Pausa 1 segundo
+}
+
+/*
+ * Función: girar()
+ * Parámetros:
+ *   - pasos: Número de pasos a ejecutar
+ * Descripción: Genera los pulsos necesarios para mover el motor
+ */
+void girar(int pasos) {
+  for (int i = 0; i < pasos; i++) {
+    // Pulso alto
+    digitalWrite(pinSTEP, HIGH);
+    delayMicroseconds(1000);  // Controla velocidad (menor = más rápido)
+    
+    // Pulso bajo
+    digitalWrite(pinSTEP, LOW);
+    delayMicroseconds(1000);
+  }
+}
